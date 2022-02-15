@@ -1,0 +1,30 @@
+version: '3'
+services:
+  db:
+    image: mysql:latest
+    container_name: nfp
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    ports:
+      # 公開ポートを指定
+      - "3306:3306"
+    volumes:
+      - './docker/mysql/data:/var/lib/mysql'
+      - './docker/mysql/conf:/etc/mysql/conf.d'
+      - './docker/mysql/db:/docker-entrypoint-initdb.d'
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: nfp
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+
+  api:
+    build:
+      context: .
+      dockerfile: ./docker/api/Dockerfile
+    tty: true # コンテナの永続化
+    volumes:
+      - ./app:/go/src/nfp-server
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
