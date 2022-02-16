@@ -86,7 +86,9 @@ func (presenter *LinePresenter) Parrot(token, msg string) {
 
 func (presenter *LinePresenter) replyMessage(msg string, replyToken string) {
 	res := linebot.NewTextMessage(msg)
+	logrus.Debug("replying message: %v", res)
 	if _, err := presenter.bot.ReplyMessage(replyToken, res).Do(); err != nil {
+		println(err)
 		logrus.Errorf("Error LINEBOT replying message: %v", err)
 	}
 }

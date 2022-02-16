@@ -1,25 +1,22 @@
 package infrastructure
 
 import (
-	"net/http"
 	"nfp-server/interfaces/controllers"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 )
 
-func Init() {
-	e := echo.New()
-	// ミドルウェアを設定
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+// Router ルーティング
+type Router struct {
+	e  *echo.Echo
+	lc *controllers.LinebotController
+}
 
-	linebotController := controllers.NewLinebotController()
+// NewRouter コンストラクタ
+func NewRouter(e *echo.Echo, lc *controllers.LinebotController) *Router {
+	return &Router{e: e, lc: lc}
+}
 
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
-	})
-
-	e.POST("/linebot/callback", linebotController.CatchEvents())
-	e.Logger.Fatal(e.Start(":8080"))
+func (r *Router) Init() {
+	r.e.POST("/linebot/callback", r.lc.CatchEvents())
 }

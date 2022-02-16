@@ -13,13 +13,13 @@ import (
 
 // LinebotController LINEBOTコントローラ
 type LinebotController struct {
-	linebotInteractor    usecase.LineBotInteractor
+	linebotInteractor    usecase.ILineBotUseCase
 	blockchainInteractor usecase.BlockchainInteractor
 	bot                  *linebot.Client
 }
 
 // NewLinebotController コンストラクタ
-func NewLinebotController() *LinebotController {
+func NewLinebotController(linebotInteractor usecase.ILineBotUseCase) *LinebotController {
 
 	secret := os.Getenv("LBOT_SECRET")
 	token := os.Getenv("LBOT_TOKEN")
@@ -30,7 +30,7 @@ func NewLinebotController() *LinebotController {
 	}
 
 	return &LinebotController{
-		linebotInteractor:    usecase.LineBotInteractor{},
+		linebotInteractor:    linebotInteractor,
 		blockchainInteractor: usecase.BlockchainInteractor{},
 		bot:                  bot,
 	}
