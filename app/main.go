@@ -2,12 +2,17 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+	"nfp-server/infrastructure"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello world")
-	})
-	http.ListenAndServe(":8080", nil)
+	err := godotenv.Load(".env")
+
+	//もし err がnilではないなら、"読み込み出来ませんでした"が出力されます。
+	if err != nil {
+		fmt.Printf("環境変数を読み込み出来ませんでした: %v", err)
+	}
+	infrastructure.Init()
 }
