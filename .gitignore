@@ -1,2 +1,3 @@
 /docker/mysql/data/*
 /tmp/runner-build
+.env
