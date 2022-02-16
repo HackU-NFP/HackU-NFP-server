@@ -33,6 +33,60 @@ func (interactor *LineBotInteractor) Send(in msgdto.MsgInput) msgdto.MsgOutput {
 	return out
 }
 
+//画像を送信してくださいメッセージ
+func (interactor *LineBotInteractor) GetImage(in msgdto.MsgInput) msgdto.MsgOutput {
+	out := msgdto.MsgOutput{
+		ReplyToken: in.ReplyToken,
+	}
+	if out.ReplyToken != "" {
+		interactor.linePresenter.AskIamge(out)
+	}
+
+	return out
+}
+
+//画像を受けっとってタイトル送信メッセージ
+func (interactor *LineBotInteractor) GetTitle(in msgdto.MsgInput) msgdto.MsgOutput {
+	//TODO: 画像保存処理&state変更
+
+	out := msgdto.MsgOutput{
+		ReplyToken: in.ReplyToken,
+	}
+	if out.ReplyToken != "" {
+		interactor.linePresenter.AskTitle(out)
+	}
+
+	return out
+}
+
+//タイトルを受け取って詳細送信してくださいメッセージ
+func (interactor *LineBotInteractor) GetDetail(in msgdto.MsgInput) msgdto.MsgOutput {
+	//TODO: タイトル保存処理&state変更
+
+	out := msgdto.MsgOutput{
+		ReplyToken: in.ReplyToken,
+	}
+	if out.ReplyToken != "" {
+		interactor.linePresenter.AskDetail(out)
+	}
+
+	return out
+}
+
+//詳細を受け取ってNFT作成確認メッセージ
+func (interactor *LineBotInteractor) Confirm(in msgdto.MsgInput) msgdto.MsgOutput {
+	//TODO: 詳細保存処理&state変更
+
+	out := msgdto.MsgOutput{
+		ReplyToken: in.ReplyToken,
+	}
+	if out.ReplyToken != "" {
+		interactor.linePresenter.Confirm(out)
+	}
+
+	return out
+}
+
 // storeImage NFT化する画像を受け取りstorageに保存する tokenIdに対応するurlにする必要あり
 func (interactor *LineBotInteractor) StoreImage() {
 
