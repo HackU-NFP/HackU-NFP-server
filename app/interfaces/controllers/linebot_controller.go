@@ -49,9 +49,11 @@ func (controller *LinebotController) CatchEvents() echo.HandlerFunc {
 				switch event.Message.(type) {
 				case *linebot.TextMessage:
 					controller.replyToTextMessage(event)
+				case *linebot.ImageMessage:
+					controller.replyToImageMessage(event)
 				}
 			} else if event.Type == linebot.EventTypePostback {
-				// controller.replyToEventTypePostback(event)
+				controller.replyToEventTypePostback(event)
 			}
 		}
 
@@ -66,28 +68,45 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 		ReplyToken: e.ReplyToken,
 		Msg:        msg,
 	}
-	controller.linebotInteractor.Send(input)
+
+	if msg == "NFTを作成する" {
+		controller.linebotInteractor.GetImage(input)
+	} else {
+		state := "" //TODO: state管理
+
+		switch state {
+		case "detail":
+			controller.linebotInteractor.GetDetail(input)
+		case "confirm":
+			controller.linebotInteractor.Confirm(input)
+		default:
+			controller.linebotInteractor.Send(input)
+		}
+	}
 }
 
-// func (controller *LinebotController) replyToEventTypePostback(e *linebot.Event) {
-// 	dataMap := createDataMap(e.Postback.Data)
+func (controller *LinebotController) replyToEventTypePostback(e *linebot.Event) {
+	dataMap := createDataMap(e.Postback.Data)
 
-// 	if dataMap["action"] == "addFavorite" {
-// 		favoriteAddInput := favoritedto.AddInput{
-// 			ReplyToken: e.ReplyToken,
-// 			LineUserID: e.Source.UserID,
-// 			PlaceID:    dataMap["placeId"],
-// 		}
-// 		controller.favoriteInteractor.Add(favoriteAddInput)
-// 	} else if dataMap["action"] == "removeFavorite" {
-// 		favoriteRemoveInput := favoritedto.RemoveInput{
-// 			ReplyToken: e.ReplyToken,
-// 			LineUserID: e.Source.UserID,
-// 			PlaceID:    dataMap["placeId"],
-// 		}
-// 		controller.favoriteInteractor.Remove(favoriteRemoveInput)
-// 	}
-// }
+	if dataMap["action"] == "create" {
+		//NFT作成するボタン押された時
+
+	} else if dataMap["action"] == "cancel" {
+		//キャンセルボタン押された時
+
+	}
+}
+
+func (controller *LinebotController) replyToImageMessage(e *linebot.Event) {
+	//TODO: 受け取った画像の処理
+
+	input := msgdto.MsgInput{
+		ReplyToken: e.ReplyToken,
+		Msg:        "NFT画像",
+	}
+
+	controller.linebotInteractor.GetTitle(input)
+}
 
 // createDataMap Postbackで受け取ったデータをパースしてマップ形式で保存する
 // e.g.
