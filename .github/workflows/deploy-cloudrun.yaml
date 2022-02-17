@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# on:
-#   pull_request:
-#     types: [closed]
-#     branches:
-#       - main
-on:
-  push:
-    branches:
-      - feature/gcp-deploy
-
 name: Build and Deploy a Container
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
