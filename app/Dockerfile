@@ -1,7 +1,7 @@
 FROM golang:1.15.2-alpine
 
 # # go moduleを使用
-# ENV GO111MODULE=on 
+# ENV GO111MODULE=on
 
 # アップデートとgitのインストール！！
 RUN apk update && apk add git && go get -u github.com/oxequa/realize
@@ -18,6 +18,11 @@ ADD . /go/src/nfp-server
 
 # COPY . .
 # RUN go build .
+
+ARG lbot_secret
+ARG lbot_token
+ENV LBOT_SECRET=${lbot_secret}
+ENV LBOT_TOKEN=${lbot_token}
 
 EXPOSE 8080
 
