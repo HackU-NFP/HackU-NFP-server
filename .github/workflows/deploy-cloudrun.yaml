@@ -45,6 +45,7 @@ jobs:
         run: gcloud auth configure-docker
 
       - name: Build and Push Container
+        working-directory: ./app
         run: |-
           docker build . -t ${{ env.IMAGE }} --build-arg lbot_secret=${{ env.LBOT_SECRET }} --build-arg lbot_token=${{ env.LBOT_TOKEN }}
           docker push ${{ env.IMAGE }}
