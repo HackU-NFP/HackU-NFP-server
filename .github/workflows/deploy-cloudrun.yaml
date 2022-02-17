@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# on:
+#   pull_request:
+#     types: [closed]
+#     branches:
+#       - main
 on:
   push:
     branches:
@@ -21,9 +26,9 @@ name: Build and Deploy a Container
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-  SERVICE: hacku-npf-server
+  SERVICE: hacku-nfp-server
   REGION: asia-northeast1
-  IMAGE: gcr.io/${{ secrets.GCP_PROJECT }}/hacku-npf-server
+  IMAGE: gcr.io/${{ secrets.GCP_PROJECT }}/hacku-nfp-server
   LBOT_SECRET: ${{ secrets.LBOT_SECRET }}
   LBOT_TOKEN: ${{ secrets.LBOT_TOKEN }}
 
