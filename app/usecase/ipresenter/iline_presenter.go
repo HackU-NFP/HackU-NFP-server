@@ -8,5 +8,5 @@ type ILinePresenter interface {
 	AskIamge(out msgdto.MsgOutput)
 	AskTitle(out msgdto.MsgOutput)
 	AskDetail(out msgdto.MsgOutput)
-	Confirm(out msgdto.MsgOutput)
+	Confirm(out msgdto.MsgOutput, image string, title string, meta string)
 }
