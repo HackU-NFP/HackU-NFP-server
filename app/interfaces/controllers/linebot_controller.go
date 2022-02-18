@@ -14,12 +14,12 @@ import (
 // LinebotController LINEBOTコントローラ
 type LinebotController struct {
 	linebotInteractor    usecase.ILineBotUseCase
-	blockchainInteractor usecase.BlockchainInteractor
+	blockchainInteractor usecase.IBlockchainUseCase
 	bot                  *linebot.Client
 }
 
 // NewLinebotController コンストラクタ
-func NewLinebotController(linebotInteractor usecase.ILineBotUseCase) *LinebotController {
+func NewLinebotController(linebotInteractor usecase.ILineBotUseCase, blockchainInteractor usecase.IBlockchainUseCase) *LinebotController {
 
 	secret := os.Getenv("LBOT_SECRET")
 	token := os.Getenv("LBOT_TOKEN")
@@ -31,7 +31,7 @@ func NewLinebotController(linebotInteractor usecase.ILineBotUseCase) *LinebotCon
 
 	return &LinebotController{
 		linebotInteractor:    linebotInteractor,
-		blockchainInteractor: usecase.BlockchainInteractor{},
+		blockchainInteractor: blockchainInteractor,
 		bot:                  bot,
 	}
 }
@@ -90,6 +90,13 @@ func (controller *LinebotController) replyToEventTypePostback(e *linebot.Event) 
 
 	if dataMap["action"] == "create" {
 		//NFT作成するボタン押された時
+		// txhash := controller.blockchainInteractor.CreateNonFungible(userId, contractId, name, meta);
+		// トランザクション情報からtokenTypeを取得する
+		// controller.blockchainInteractor.GetTransaction(txhash);
+		// tokenType :=
+		// ミント
+		// controller.blockchainInteractor.MintNonFungible(userId, contractId, tokenType, name, meta);
+		// 画像をstorageにアップロードする.tokenTypeをファイル名にする
 
 	} else if dataMap["action"] == "cancel" {
 		//キャンセルボタン押された時

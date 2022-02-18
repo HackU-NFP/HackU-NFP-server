@@ -20,7 +20,9 @@ var superSet = wire.NewSet(
 	wire.Bind(new(ipresenter.ILinePresenter), new(*presenter.LinePresenter)),
 
 	// Interactor
+	usecase.NewBlockchainInteractor,
 	usecase.NewLineBotInteractor,
+	wire.Bind(new(usecase.IBlockchainUseCase), new(*usecase.BlockchainInteractor)),
 	wire.Bind(new(usecase.ILineBotUseCase), new(*usecase.LineBotInteractor)),
 
 	// Controller
