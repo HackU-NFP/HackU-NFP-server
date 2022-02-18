@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"nfp-server/api"
-	"nfp-server/config"
+	"os"
 	"regexp"
 )
 
@@ -57,8 +57,8 @@ func (interactor *BlockchainInteractor) CreateNonFungible(userID, contractID, na
 	params := map[string]interface{}{
 		"name":         name,
 		"meta":         meta,
-		"ownerAddress": config.GetAPIConfig().WalletAddress,
-		"ownerSecret":  config.GetAPIConfig().WalletSecret,
+		"ownerAddress": os.Getenv("WALLET_ADRESS"),
+		"ownerSecret":  os.Getenv("WALLET_SECRET"),
 	}
 
 	apiResult, err := api.CallAPI(path, "POST", nil, params)
@@ -110,8 +110,8 @@ func (interactor *BlockchainInteractor) MintNonFungible(userID, contractID, toke
 		"toUserId":     userID,
 		"name":         name,
 		"meta":         meta,
-		"ownerAddress": config.GetAPIConfig().WalletAddress,
-		"ownerSecret":  config.GetAPIConfig().WalletSecret,
+		"ownerAddress": os.Getenv("WALLET_ADRESS"),
+		"ownerSecret":  os.Getenv("WALLET_SECRET"),
 	}
 
 	apiResult, err := api.CallAPI(path, "POST", nil, params)

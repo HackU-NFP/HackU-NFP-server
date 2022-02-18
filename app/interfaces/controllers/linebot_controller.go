@@ -76,8 +76,8 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 		logrus.Debug("NFTテスト")
 		userId := e.Source.UserID
 		contractId := os.Getenv("CONTRACT_ID")
-		name := "gmmm"   //TODO: stateの値にする
-		meta := "gmmmmm" //TODO:stateの値にする
+		name := "HelloWorld" //TODO: stateの値にする
+		meta := "HelloWorld" //TODO:stateの値にする
 		controller.mint(e, userId, contractId, name, meta)
 	} else {
 		state := "" //TODO: state管理
@@ -161,7 +161,7 @@ func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, 
 	tokenType := *&tx.Logs[0].Events[0].Attributes[1].Value
 	// ミント
 	mintTx, err := controller.blockchainInteractor.MintNonFungible(userId, contractId, tokenType, name, meta)
-	time.Sleep(time.Second * 3) //sleep
+	time.Sleep(time.Second * 5) //sleep
 	if err != nil {
 		input := msgdto.SuccessInput{
 			TokenType: tokenType,

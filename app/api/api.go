@@ -27,7 +27,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"nfp-server/config"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -49,7 +49,7 @@ func CallAPI(path, method string, query map[string]string, params map[string]int
 		}
 	}
 
-	req, err := http.NewRequest(method, config.GetAPIConfig().LBDAPIEndpoint+path+queryStr, body)
+	req, err := http.NewRequest(method, os.Getenv("LBDAPIENDPOINT")+path+queryStr, body)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func CallAPI(path, method string, query map[string]string, params map[string]int
 	sig := getSignature(nonce, timestamp, method, path, queryStr, params)
 
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("service-api-key", config.GetAPIConfig().APIKey)
+	req.Header.Add("service-api-key", os.Getenv("API_KEY"))
 	req.Header.Add("signature", sig)
 	req.Header.Add("nonce", nonce)
 	req.Header.Add("timestamp", timestamp)
@@ -140,7 +140,7 @@ func getSignature(nonce, timestamp, method, path string, query string, params ma
 		}
 	}
 
-	hash := hmac.New(sha512.New, []byte(config.GetAPIConfig().APISecret))
+	hash := hmac.New(sha512.New, []byte(os.Getenv("API_SECRET")))
 	hash.Write([]byte(msg))
 
 	return base64.StdEncoding.EncodeToString(hash.Sum(nil))
@@ -163,14 +163,14 @@ func parseParams(result map[string]string, key string, params interface{}) {
 
 func GetServerTime() (string, error) {
 	client := http.Client{}
-	req, err := http.NewRequest("GET", config.GetAPIConfig().LBDAPIEndpoint+"/v1/time", nil)
+	req, err := http.NewRequest("GET", os.Getenv("LBDAPIENDPOINT")+"/v1/time", nil)
 
 	if err != nil {
 		return "", err
 	}
 
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("service-api-key", config.GetAPIConfig().APIKey)
+	req.Header.Add("service-api-key", os.Getenv("API_KEY"))
 
 	resp, err := client.Do(req)
 
