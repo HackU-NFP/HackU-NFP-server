@@ -50,6 +50,12 @@ func (presenter *LinePresenter) Parrot(token, msg string) {
 	presenter.replyMessage(msg, replyToken)
 }
 
+//loading
+func (presenter *LinePresenter) Loading(out msgdto.MsgOutput) {
+	replyToken := out.ReplyToken
+	presenter.replyMessage(msgLoading, replyToken)
+}
+
 // AskIamge NFTにする画像たずねる
 func (presenter *LinePresenter) AskIamge(out msgdto.MsgOutput) {
 	replyToken := out.ReplyToken
@@ -158,6 +164,153 @@ func (presenter *LinePresenter) Confirm(out msgdto.MsgOutput) {
 	presenter.replyFlexMessage(message, replyToken)
 }
 
+//NFT作成成功時のメッセージ
+func (presenter *LinePresenter) SuccessMint(out msgdto.SuccessOutput) {
+	name := out.Name
+	tokenType := out.TokenType
+	contractId := out.ContractId
+	userId := out.UserId
+	txUri := out.TxUri
+
+	jsonData := []byte(fmt.Sprintf(`{
+		"type": "bubble",
+		"hero": {
+		  "type": "image",
+		  "url": "https://scdn.line-apps.com/n/channel_devcenter/img/fx/01_1_cafe.png",
+		  "size": "full",
+		  "aspectRatio": "20:13",
+		  "aspectMode": "cover",
+		  "action": {
+			"type": "uri",
+			"label": "Line",
+			"uri": "https://linecorp.com/"
+		  }
+		},
+		"body": {
+		  "type": "box",
+		  "layout": "vertical",
+		  "contents": [
+			{
+			  "type": "text",
+			  "text": "%s",
+			  "weight": "bold",
+			  "size": "xl",
+			  "contents": []
+			},
+			{
+			  "type": "box",
+			  "layout": "vertical",
+			  "spacing": "sm",
+			  "margin": "lg",
+			  "contents": [
+				{
+				  "type": "box",
+				  "layout": "baseline",
+				  "spacing": "sm",
+				  "contents": [
+					{
+					  "type": "text",
+					  "text": "tokenType",
+					  "size": "sm",
+					  "color": "#AAAAAA",
+					  "contents": []
+					},
+					{
+					  "type": "text",
+					  "text": "%s",
+					  "flex": 2,
+					  "contents": []
+					}
+				  ]
+				},
+				{
+				  "type": "box",
+				  "layout": "baseline",
+				  "spacing": "sm",
+				  "contents": [
+					{
+					  "type": "text",
+					  "text": "contractId",
+					  "size": "sm",
+					  "color": "#AAAAAA",
+					  "flex": 1,
+					  "wrap": true,
+					  "contents": []
+					},
+					{
+					  "type": "text",
+					  "text": "%s",
+					  "size": "sm",
+					  "color": "#666666",
+					  "flex": 2,
+					  "wrap": true,
+					  "contents": []
+					}
+				  ]
+				},
+				{
+				  "type": "box",
+				  "layout": "baseline",
+				  "spacing": "sm",
+				  "contents": [
+					{
+					  "type": "text",
+					  "text": "owner",
+					  "size": "sm",
+					  "color": "#AAAAAA",
+					  "wrap": true,
+					  "contents": []
+					},
+					{
+					  "type": "text",
+					  "text": "%s",
+					  "size": "sm",
+					  "color": "#666666",
+					  "flex": 2,
+					  "wrap": true,
+					  "contents": []
+					}
+				  ]
+				}
+			  ]
+			}
+		  ]
+		},
+		"footer": {
+		  "type": "box",
+		  "layout": "vertical",
+		  "flex": 0,
+		  "spacing": "sm",
+		  "contents": [
+			{
+			  "type": "button",
+			  "action": {
+				"type": "uri",
+				"label": "トランザクション",
+				"uri": "%s"
+			  },
+			  "height": "sm",
+			  "style": "link"
+			},
+			{
+			  "type": "spacer",
+			  "size": "sm"
+			}
+		  ]
+		}
+	  }`, name, tokenType, contractId, userId, txUri))
+
+	container, err := linebot.UnmarshalFlexMessageJSON(jsonData)
+	if err != nil {
+		// 正しくUnmarshalできないinvalidなJSONであればerrが返る
+		logrus.Errorf("Error invalid JSON")
+	}
+
+	message := linebot.NewFlexMessage("NFTを作成しました", container)
+
+	presenter.pushFlexMessage(message, userId)
+}
+
 // func (presenter *LinePresenter) replyCarouselColumn(
 // 	msgs carouselMsgs, googleMapOutputs []model.Place, replyToken string) {
 
@@ -193,6 +346,13 @@ func (presenter *LinePresenter) Confirm(out msgdto.MsgOutput) {
 // 		logrus.Errorf("Error LINEBOT replying message: %v", err)
 // 	}
 // }
+func (presenter *LinePresenter) pushFlexMessage(msg *linebot.FlexMessage, userId string) {
+	if _, err := presenter.bot.PushMessage(userId, msg).Do(); err != nil {
+		println(err)
+		logrus.Errorf("Error LINEBOT push message: %v", err)
+	}
+}
+
 func (presenter *LinePresenter) replyFlexMessage(msg *linebot.FlexMessage, replyToken string) {
 	if _, err := presenter.bot.ReplyMessage(replyToken, msg).Do(); err != nil {
 		println(err)

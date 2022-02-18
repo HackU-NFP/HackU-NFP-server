@@ -5,6 +5,7 @@ import (
 	msgdto "nfp-server/usecase/dto"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
@@ -71,6 +72,13 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 
 	if msg == "NFTを作成する" {
 		controller.linebotInteractor.GetImage(input)
+	} else if msg == "NFTテスト" {
+		logrus.Debug("NFTテスト")
+		userId := e.Source.UserID
+		contractId := os.Getenv("CONTRACT_ID")
+		name := "gmmm"   //TODO: stateの値にする
+		meta := "gmmmmm" //TODO:stateの値にする
+		controller.mint(e, userId, contractId, name, meta)
 	} else {
 		state := "" //TODO: state管理
 
@@ -90,13 +98,12 @@ func (controller *LinebotController) replyToEventTypePostback(e *linebot.Event) 
 
 	if dataMap["action"] == "create" {
 		//NFT作成するボタン押された時
-		// txhash := controller.blockchainInteractor.CreateNonFungible(userId, contractId, name, meta);
-		// トランザクション情報からtokenTypeを取得する
-		// controller.blockchainInteractor.GetTransaction(txhash);
-		// tokenType :=
-		// ミント
-		// controller.blockchainInteractor.MintNonFungible(userId, contractId, tokenType, name, meta);
-		// 画像をstorageにアップロードする.tokenTypeをファイル名にする
+		// userId := e.Source.UserID
+		// contractId := os.Getenv("CONTRACT_ID")
+		// name := "gmmm"   //TODO: stateの値にする
+		// meta := "gmmmmm" //TODO:stateの値にする
+		// // ミント
+		// controller.mint(e, userId, contractId, name, meta)
 
 	} else if dataMap["action"] == "cancel" {
 		//キャンセルボタン押された時
@@ -129,4 +136,52 @@ func createDataMap(q string) map[string]string {
 	}
 
 	return dataMap
+}
+
+func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, name, meta string) {
+	loadingInput := msgdto.MsgInput{
+		ReplyToken: e.ReplyToken,
+		Msg:        "作成中です...",
+	}
+	//作成中です...メッセージ送信
+	controller.linebotInteractor.Loading(loadingInput)
+
+	txhash, err := controller.blockchainInteractor.CreateNonFungible(userId, contractId, name, meta)
+	time.Sleep(time.Second * 3) //sleep
+	if err != nil {
+		logrus.Debug("NFTの作成に失敗しました: ", err)
+		return
+	}
+	tx, err := controller.blockchainInteractor.GetTransaction(txhash.TxHash)
+	time.Sleep(time.Second * 3) //sleep
+	if err != nil {
+		logrus.Debug("NFTの作成に失敗しました: ", err)
+		return
+	}
+	tokenType := *&tx.Logs[0].Events[0].Attributes[1].Value
+	// ミント
+	mintTx, err := controller.blockchainInteractor.MintNonFungible(userId, contractId, tokenType, name, meta)
+	time.Sleep(time.Second * 3) //sleep
+	if err != nil {
+		input := msgdto.SuccessInput{
+			TokenType: tokenType,
+			UserId:    userId,
+			Tx:        txhash.TxHash,
+			Name:      name,
+		}
+		//ミント成功メッセージ送信
+		controller.linebotInteractor.SuccessMint(input)
+		return
+	}
+	// TODO:画像をstorageにアップロードする.tokenTypeをファイル名にする
+
+	input := msgdto.SuccessInput{
+		TokenType: tokenType,
+		UserId:    userId,
+		Tx:        mintTx.TxHash,
+		Name:      name,
+	}
+	//ミント成功メッセージ送信
+	controller.linebotInteractor.SuccessMint(input)
+	return
 }

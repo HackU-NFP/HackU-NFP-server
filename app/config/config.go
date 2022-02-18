@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
+	"github.com/sirupsen/logrus"
 )
 
 type APIConfig struct {
@@ -36,7 +37,7 @@ type APIConfig struct {
 }
 
 const (
-	Path = "./config.toml"
+	Path = "CONFIG_PATH"
 )
 
 var (
@@ -53,6 +54,7 @@ func SetAPIConfig(config *APIConfig) {
 
 func LoadAPIConfig(path string) {
 	dat, err := ioutil.ReadFile(path)
+	logrus.Debug("dat:", dat)
 	if err != nil {
 		fmt.Println(err.Error())
 		return

@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"nfp-server/config"
+	"os"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -16,6 +18,9 @@ func main() {
 	//もし err がnilではないなら、"読み込み出来ませんでした"が出力されます。
 	if err != nil {
 		fmt.Printf("環境変数を読み込み出来ませんでした: %v", err)
+	}
+	if configPath := os.Getenv(config.Path); configPath != "" {
+		config.LoadAPIConfig(configPath)
 	}
 
 	logrus.SetLevel(logrus.DebugLevel)

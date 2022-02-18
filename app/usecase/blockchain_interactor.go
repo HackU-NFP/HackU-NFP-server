@@ -31,7 +31,7 @@ func checkUrlParam(params ...string) bool {
 			return false
 		}
 	}
-	return true
+	return false //true
 }
 
 // //
@@ -76,9 +76,9 @@ func (interactor *BlockchainInteractor) CreateNonFungible(userID, contractID, na
 }
 
 func (interactor *BlockchainInteractor) GetTransaction(txHash string) (*Transaction, error) {
-	if checkUrlParam(txHash) {
-		return nil, errInvalidParam
-	}
+	// if checkUrlParam(txHash) {
+	// 	return nil, errInvalidParam
+	// }
 	path := fmt.Sprintf("/v1/transactions/%s", txHash)
 
 	apiResult, err := api.CallAPI(path, "GET", nil, nil)
