@@ -19,3 +19,13 @@ ngrok http 8080
 (https://~.ngrok.io/linebot/callback)
 ![image](https://user-images.githubusercontent.com/53213591/154267908-91c388aa-d1c7-4c20-8675-794f5c07ba4e.png)
 ![スクリーンショット 2022-02-16 21 50 23](https://user-images.githubusercontent.com/53213591/154268113-271c7de3-efca-481f-9e8e-459c2d675ef8.png)
+
+
+## DB接続
+```bash
+docker exec -it nfp /bin/bash
+```
+
+```bash
+mysql -u user -p
+```
