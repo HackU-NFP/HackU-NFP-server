@@ -110,9 +110,12 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 			sessions[key{uid, "state"}] = "confirm"
 		case "confirm":
 			if msg == "作成する" {
-				input.Msg = "作成中..."
-				controller.linebotInteractor.Send(input)
+				userId := e.Source.UserID
+				contractId := os.Getenv("CONTRACT_ID")
+				name := sessions[key{uid, "title"}]
+				meta := sessions[key{uid, "meta"}]
 				// mint
+				controller.mint(e, userId, contractId, name, meta)
 			} else {
 				controller.linebotInteractor.Confirm(input, sessions[key{uid, "image"}], sessions[key{uid, "title"}], sessions[key{uid, "meta"}])
 			}
@@ -216,12 +219,14 @@ func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, 
 	txhash, err := controller.blockchainInteractor.CreateNonFungible(userId, contractId, name, meta)
 	time.Sleep(time.Second * 3) //sleep
 	if err != nil {
+		sessions[key{userId, "state"}] = ""
 		logrus.Debug("NFTの作成に失敗しました: ", err)
 		return
 	}
 	tx, err := controller.blockchainInteractor.GetTransaction(txhash.TxHash)
 	time.Sleep(time.Second * 3) //sleep
 	if err != nil {
+		sessions[key{userId, "state"}] = ""
 		logrus.Debug("NFTの作成に失敗しました: ", err)
 		return
 	}
@@ -237,6 +242,7 @@ func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, 
 			Name:      name,
 		}
 		//ミント成功メッセージ送信
+		sessions[key{userId, "state"}] = ""
 		controller.linebotInteractor.SuccessMint(input)
 		return
 	}
@@ -250,5 +256,6 @@ func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, 
 	}
 	//ミント成功メッセージ送信
 	controller.linebotInteractor.SuccessMint(input)
+	sessions[key{userId, "state"}] = ""
 	return
 }
