@@ -9,7 +9,7 @@ type ILineBotUseCase interface {
 	GetImage(msgdto.MsgInput) msgdto.MsgOutput
 	GetTitle(msgdto.MsgInput) msgdto.MsgOutput
 	GetDetail(msgdto.MsgInput) msgdto.MsgOutput
-	Confirm(msgdto.MsgInput) msgdto.MsgOutput
 	SuccessMint(msgdto.SuccessInput) msgdto.SuccessOutput
+	Confirm(msgdto.MsgInput, string, string, string) msgdto.MsgOutput
 	StoreImage()
 }

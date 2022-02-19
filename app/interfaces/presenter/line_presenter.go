@@ -78,11 +78,8 @@ func (presenter *LinePresenter) AskDetail(out msgdto.MsgOutput) {
 }
 
 // Confirm NF作成の確認メッセージ
-func (presenter *LinePresenter) Confirm(out msgdto.MsgOutput) {
+func (presenter *LinePresenter) Confirm(out msgdto.MsgOutput, image string, title string, meta string) {
 	replyToken := out.ReplyToken
-	//TODO: 値を取得する。
-	name := "aaa"
-	meta := "詳細いいいい"
 
 	jsonData := []byte(fmt.Sprintf(`{
 		"type": "bubble",
@@ -110,6 +107,12 @@ func (presenter *LinePresenter) Confirm(out msgdto.MsgOutput) {
 				}
 			  ]
 			},
+			{
+    		"type": "image",
+    		"url": "%s",
+    		"size": "full",
+    		"aspectRatio": "3:1"
+  		},
 			{
 			  "type": "text",
 			  "text": "name: %s",
@@ -151,7 +154,7 @@ func (presenter *LinePresenter) Confirm(out msgdto.MsgOutput) {
 			}
 		  ]
 		}
-	  }`, name, meta))
+	  }`, image, title, meta))
 
 	container, err := linebot.UnmarshalFlexMessageJSON(jsonData)
 	if err != nil {
