@@ -74,14 +74,14 @@ func (interactor *LineBotInteractor) GetDetail(in msgdto.MsgInput) msgdto.MsgOut
 }
 
 //詳細を受け取ってNFT作成確認メッセージ
-func (interactor *LineBotInteractor) Confirm(in msgdto.MsgInput) msgdto.MsgOutput {
+func (interactor *LineBotInteractor) Confirm(in msgdto.MsgInput, title string, image string, meta string) msgdto.MsgOutput {
 	//TODO: 詳細保存処理&state変更
 
 	out := msgdto.MsgOutput{
 		ReplyToken: in.ReplyToken,
 	}
 	if out.ReplyToken != "" {
-		interactor.linePresenter.Confirm(out)
+		interactor.linePresenter.Confirm(out, title, image, meta)
 	}
 
 	return out
