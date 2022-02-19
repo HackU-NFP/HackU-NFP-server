@@ -6,3 +6,10 @@ type MsgInput struct {
 	LineUserID string
 	Msg        string
 }
+
+type SuccessInput struct {
+	TokenType string
+	UserId    string
+	Tx        string
+	Name      string
+}

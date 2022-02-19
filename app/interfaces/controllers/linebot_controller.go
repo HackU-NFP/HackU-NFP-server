@@ -6,6 +6,7 @@ import (
 	msgdto "nfp-server/usecase/dto"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
@@ -15,7 +16,7 @@ import (
 // LinebotController LINEBOTコントローラ
 type LinebotController struct {
 	linebotInteractor    usecase.ILineBotUseCase
-	blockchainInteractor usecase.BlockchainInteractor
+	blockchainInteractor usecase.IBlockchainUseCase
 	bot                  *linebot.Client
 }
 
@@ -23,12 +24,12 @@ type LinebotController struct {
 type key struct {
 	uid, info_key string
 }
+
 // state, image, title, meta 一時保持
 var sessions = make(map[key]string)
 
-
 // NewLinebotController コンストラクタ
-func NewLinebotController(linebotInteractor usecase.ILineBotUseCase) *LinebotController {
+func NewLinebotController(linebotInteractor usecase.ILineBotUseCase, blockchainInteractor usecase.IBlockchainUseCase) *LinebotController {
 
 	secret := os.Getenv("LBOT_SECRET")
 	token := os.Getenv("LBOT_TOKEN")
@@ -40,7 +41,7 @@ func NewLinebotController(linebotInteractor usecase.ILineBotUseCase) *LinebotCon
 
 	return &LinebotController{
 		linebotInteractor:    linebotInteractor,
-		blockchainInteractor: usecase.BlockchainInteractor{},
+		blockchainInteractor: blockchainInteractor,
 		bot:                  bot,
 	}
 }
@@ -88,6 +89,13 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 	} else if msg == "NFTを作る" {
 		controller.linebotInteractor.GetImage(input)
 		sessions[key{uid, "state"}] = "title"
+	} else if msg == "NFTテスト" {
+		logrus.Debug("NFTテスト")
+		userId := e.Source.UserID
+		contractId := os.Getenv("CONTRACT_ID")
+		name := "HelloWorld" //TODO: stateの値にする
+		meta := "HelloWorld" //TODO:stateの値にする
+		controller.mint(e, userId, contractId, name, meta)
 	} else {
 		state := sessions[key{uid, "state"}] //TODO: state管理
 
@@ -102,9 +110,12 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 			sessions[key{uid, "state"}] = "confirm"
 		case "confirm":
 			if msg == "作成する" {
-				input.Msg = "作成中..."
-				controller.linebotInteractor.Send(input)
+				userId := e.Source.UserID
+				contractId := os.Getenv("CONTRACT_ID")
+				name := sessions[key{uid, "title"}]
+				meta := sessions[key{uid, "meta"}]
 				// mint
+				controller.mint(e, userId, contractId, name, meta)
 			} else {
 				controller.linebotInteractor.Confirm(input, sessions[key{uid, "image"}], sessions[key{uid, "title"}], sessions[key{uid, "meta"}])
 			}
@@ -134,6 +145,13 @@ func (controller *LinebotController) replyToEventTypePostback(e *linebot.Event) 
 			input.Msg = "作成中..."
 			controller.linebotInteractor.Send(input)
 			// mint
+			//NFT作成するボタン押された時
+			// userId := e.Source.UserID
+			// contractId := os.Getenv("CONTRACT_ID")
+			// name := "gmmm"   //TODO: stateの値にする
+			// meta := "gmmmmm" //TODO:stateの値にする
+			// // ミント
+			// controller.mint(e, userId, contractId, name, meta)
 		} else if e.Postback.Data == "cancel_create" {
 			//キャンセルボタン押された時
 			sessions[key{uid, "state"}] = ""
@@ -188,4 +206,56 @@ func createDataMap(q string) map[string]string {
 	}
 
 	return dataMap
+}
+
+func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, name, meta string) {
+	loadingInput := msgdto.MsgInput{
+		ReplyToken: e.ReplyToken,
+		Msg:        "作成中です...",
+	}
+	//作成中です...メッセージ送信
+	controller.linebotInteractor.Loading(loadingInput)
+
+	txhash, err := controller.blockchainInteractor.CreateNonFungible(userId, contractId, name, meta)
+	time.Sleep(time.Second * 3) //sleep
+	if err != nil {
+		sessions[key{userId, "state"}] = ""
+		logrus.Debug("NFTの作成に失敗しました: ", err)
+		return
+	}
+	tx, err := controller.blockchainInteractor.GetTransaction(txhash.TxHash)
+	time.Sleep(time.Second * 3) //sleep
+	if err != nil {
+		sessions[key{userId, "state"}] = ""
+		logrus.Debug("NFTの作成に失敗しました: ", err)
+		return
+	}
+	tokenType := *&tx.Logs[0].Events[0].Attributes[1].Value
+	// ミント
+	mintTx, err := controller.blockchainInteractor.MintNonFungible(userId, contractId, tokenType, name, meta)
+	time.Sleep(time.Second * 5) //sleep
+	if err != nil {
+		input := msgdto.SuccessInput{
+			TokenType: tokenType,
+			UserId:    userId,
+			Tx:        txhash.TxHash,
+			Name:      name,
+		}
+		//ミント成功メッセージ送信
+		sessions[key{userId, "state"}] = ""
+		controller.linebotInteractor.SuccessMint(input)
+		return
+	}
+	// TODO:画像をstorageにアップロードする.tokenTypeをファイル名にする
+
+	input := msgdto.SuccessInput{
+		TokenType: tokenType,
+		UserId:    userId,
+		Tx:        mintTx.TxHash,
+		Name:      name,
+	}
+	//ミント成功メッセージ送信
+	controller.linebotInteractor.SuccessMint(input)
+	sessions[key{userId, "state"}] = ""
+	return
 }
