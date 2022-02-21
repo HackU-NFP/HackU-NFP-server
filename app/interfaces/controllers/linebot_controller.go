@@ -1,16 +1,20 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"nfp-server/usecase"
 	msgdto "nfp-server/usecase/dto"
 	"os"
 	"strings"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/labstack/echo/v4"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/api/option"
 )
 
 // LinebotController LINEBOTコントローラ
@@ -176,15 +180,21 @@ func (controller *LinebotController) replyToImageMessage(e *linebot.Event) {
 		Msg:        "NFT画像",
 	}
 
-	//TODO: 受け取った画像の処理
+	// 受け取った画像の処理
 	content, err := controller.bot.GetMessageContent(msgId).Do()
 	if err != nil {
 		// 画像を取得できない場合errが返る
-		logrus.Errorf("ERROR: Image not found")
+		logrus.Errorf("ERROR: Image not found", err)
 	}
 	defer content.Content.Close()
+
 	// 画像アップロード
-	imageUrl := "https://1.bp.blogspot.com/-DgQkaAeOGgc/X9lJVi_Yv9I/AAAAAAABc34/S867MFYTC30KImIFJWIMYgg29mGgyPj0gCNcBGAsYHQ/s659/food_yamunyomu_chiken.png"
+	err = putGCS(content.Content, msgId)
+	if err != nil {
+		logrus.Errorf("ERROR: putGCS failure", err)
+	}
+	fmt.Println("putGCS")
+	imageUrl := os.Getenv("STORAGE_BASE_URI") + msgId
 
 	sessions[key{uid, "image"}] = imageUrl
 
@@ -208,6 +218,62 @@ func createDataMap(q string) map[string]string {
 	return dataMap
 }
 
+func putGCS(content io.ReadCloser, object string) error {
+	bucket := os.Getenv("BUCKET")
+	ctx := context.Background()
+  client, err := storage.NewClient(ctx, option.WithCredentialsJSON([]byte(os.Getenv("GCP_CREDENTIALS"))))
+  if err != nil {
+    return fmt.Errorf("storage.NewClient: %v", err)
+  }
+  defer client.Close()
+
+  ctx, cancel := context.WithTimeout(ctx, time.Second*50)
+  defer cancel()
+
+  // Upload an object with storage.Writer.
+  wc := client.Bucket(bucket).Object(object).NewWriter(ctx)
+  wc.ChunkSize = 0 // note retries are not supported for chunk size 0.
+
+  if _, err = io.Copy(wc, content); err != nil {
+    return fmt.Errorf("io.Copy: %v", err)
+  }
+  // Data can continue to be added to the file until the writer is closed.
+  if err := wc.Close(); err != nil {
+    return fmt.Errorf("Writer.Close: %v", err)
+  }
+
+  return nil
+}
+
+func changeObjectName(preName string, afterName string) error {
+	bucket := os.Getenv("BUCKET")
+	ctx := context.Background()
+  client, err := storage.NewClient(ctx, option.WithCredentialsJSON([]byte(os.Getenv("GCP_CREDENTIALS"))))
+  if err != nil {
+    return fmt.Errorf("storage.NewClient: %v", err)
+  }
+	defer client.Close()
+
+  ctx, cancel := context.WithTimeout(ctx, time.Second*50)
+  defer cancel()
+
+	src := client.Bucket(bucket).Object(preName)
+	dst := client.Bucket(bucket).Object(afterName)
+
+	// Copy content.
+	_, err = dst.CopierFrom(src).Run(ctx)
+	if err != nil {
+		return fmt.Errorf("Copy content: %v", err)
+	}
+
+	// Delete src
+	if err = src.Delete(ctx); err != nil {
+		return fmt.Errorf("Delete src: %v", err)
+	}
+
+	return nil
+}
+
 func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, name, meta string) {
 	loadingInput := msgdto.MsgInput{
 		ReplyToken: e.ReplyToken,
@@ -217,42 +283,56 @@ func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, 
 	controller.linebotInteractor.Loading(loadingInput)
 
 	txhash, err := controller.blockchainInteractor.CreateNonFungible(userId, contractId, name, meta)
-	time.Sleep(time.Second * 3) //sleep
+	fmt.Println("txhash: ", txhash)
+	time.Sleep(time.Second * 10) //sleep
 	if err != nil {
 		sessions[key{userId, "state"}] = ""
 		logrus.Debug("NFTの作成に失敗しました: ", err)
 		return
 	}
 	tx, err := controller.blockchainInteractor.GetTransaction(txhash.TxHash)
-	time.Sleep(time.Second * 3) //sleep
+	fmt.Println("tx: ", tx)
+	time.Sleep(time.Second * 10) //sleep
 	if err != nil {
 		sessions[key{userId, "state"}] = ""
 		logrus.Debug("NFTの作成に失敗しました: ", err)
 		return
 	}
 	tokenType := *&tx.Logs[0].Events[0].Attributes[1].Value
+
+	// 画像をstorageにアップロードする.tokenTypeをファイル名にする
+	preObjectName := strings.Replace(sessions[key{userId, "image"}], os.Getenv("STORAGE_BASE_URI"), "", -1)
+	// object名前変更
+	if err = changeObjectName(preObjectName, tokenType); err != nil {
+		logrus.Debug("オブジェクトの名前変更に失敗しました。: ", err)
+	}
+	fmt.Println("Change object name")
+	sessions[key{userId, "image"}] = os.Getenv("STORAGE_BASE_URI") + tokenType
+
 	// ミント
 	mintTx, err := controller.blockchainInteractor.MintNonFungible(userId, contractId, tokenType, name, meta)
 	time.Sleep(time.Second * 5) //sleep
 	if err != nil {
+		logrus.Debug("mintに失敗しました: ", err)
 		input := msgdto.SuccessInput{
 			TokenType: tokenType,
 			UserId:    userId,
 			Tx:        txhash.TxHash,
 			Name:      name,
+			Image:     sessions[key{userId, "image"}],
 		}
 		//ミント成功メッセージ送信
 		sessions[key{userId, "state"}] = ""
 		controller.linebotInteractor.SuccessMint(input)
 		return
 	}
-	// TODO:画像をstorageにアップロードする.tokenTypeをファイル名にする
 
 	input := msgdto.SuccessInput{
 		TokenType: tokenType,
 		UserId:    userId,
 		Tx:        mintTx.TxHash,
 		Name:      name,
+		Image:     sessions[key{userId, "image"}],
 	}
 	//ミント成功メッセージ送信
 	controller.linebotInteractor.SuccessMint(input)

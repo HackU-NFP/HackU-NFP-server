@@ -12,4 +12,5 @@ type SuccessInput struct {
 	UserId    string
 	Tx        string
 	Name      string
+	Image     string
 }
