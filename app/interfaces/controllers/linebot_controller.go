@@ -219,7 +219,7 @@ func createDataMap(q string) map[string]string {
 }
 
 func putGCS(content io.ReadCloser, object string) error {
-	bucket := "hacku-nfp-icon"
+	bucket := os.Getenv("BUCKET")
 	ctx := context.Background()
   client, err := storage.NewClient(ctx, option.WithCredentialsJSON([]byte(os.Getenv("GCP_CREDENTIALS"))))
   if err != nil {
@@ -245,6 +245,36 @@ func putGCS(content io.ReadCloser, object string) error {
   return nil
 }
 
+func changeObjectName(preName string, afterName string) error {
+	bucket := os.Getenv("BUCKET")
+	ctx := context.Background()
+  client, err := storage.NewClient(ctx, option.WithCredentialsJSON([]byte(os.Getenv("GCP_CREDENTIALS"))))
+  if err != nil {
+    return fmt.Errorf("storage.NewClient: %v", err)
+  }
+	defer client.Close()
+
+  ctx, cancel := context.WithTimeout(ctx, time.Second*50)
+  defer cancel()
+
+	src := client.Bucket(bucket).Object(preName)
+	dst := client.Bucket(bucket).Object(afterName)
+
+	// Copy content.
+	attrs, err := dst.CopierFrom(src).Run(ctx)
+	if err != nil {
+		return fmt.Errorf("Copy content: %v", err)
+	}
+	fmt.Println(attrs)
+
+	// Delete src
+	if err = src.Delete(ctx); err != nil {
+		return fmt.Errorf("Delete src: %v", err)
+	}
+
+	return nil
+}
+
 func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, name, meta string) {
 	loadingInput := msgdto.MsgInput{
 		ReplyToken: e.ReplyToken,
@@ -254,24 +284,36 @@ func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, 
 	controller.linebotInteractor.Loading(loadingInput)
 
 	txhash, err := controller.blockchainInteractor.CreateNonFungible(userId, contractId, name, meta)
-	time.Sleep(time.Second * 3) //sleep
+	fmt.Println(txhash)
+	time.Sleep(time.Second * 10) //sleep
 	if err != nil {
 		sessions[key{userId, "state"}] = ""
 		logrus.Debug("NFTの作成に失敗しました: ", err)
 		return
 	}
 	tx, err := controller.blockchainInteractor.GetTransaction(txhash.TxHash)
-	time.Sleep(time.Second * 3) //sleep
+	fmt.Println(tx)
+	time.Sleep(time.Second * 10) //sleep
 	if err != nil {
 		sessions[key{userId, "state"}] = ""
 		logrus.Debug("NFTの作成に失敗しました: ", err)
 		return
 	}
 	tokenType := *&tx.Logs[0].Events[0].Attributes[1].Value
+
+	// 画像をstorageにアップロードする.tokenTypeをファイル名にする
+	fmt.Println(sessions[key{userId, "image"}])
+	preObjectName := strings.Replace(sessions[key{userId, "image"}], os.Getenv("STORAGE_BASE_URI"), "", -1)
+	fmt.Println(preObjectName)
+	if err = changeObjectName(preObjectName, tokenType); err != nil {
+		logrus.Debug("オブジェクトの名前変更に失敗しました。: ", err)
+	}
+
 	// ミント
 	mintTx, err := controller.blockchainInteractor.MintNonFungible(userId, contractId, tokenType, name, meta)
 	time.Sleep(time.Second * 5) //sleep
 	if err != nil {
+		logrus.Debug("mintに失敗しました: ", err)
 		input := msgdto.SuccessInput{
 			TokenType: tokenType,
 			UserId:    userId,
@@ -283,7 +325,6 @@ func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, 
 		controller.linebotInteractor.SuccessMint(input)
 		return
 	}
-	// TODO:画像をstorageにアップロードする.tokenTypeをファイル名にする
 
 	input := msgdto.SuccessInput{
 		TokenType: tokenType,
