@@ -261,11 +261,10 @@ func changeObjectName(preName string, afterName string) error {
 	dst := client.Bucket(bucket).Object(afterName)
 
 	// Copy content.
-	attrs, err := dst.CopierFrom(src).Run(ctx)
+	_, err = dst.CopierFrom(src).Run(ctx)
 	if err != nil {
 		return fmt.Errorf("Copy content: %v", err)
 	}
-	fmt.Println(attrs)
 
 	// Delete src
 	if err = src.Delete(ctx); err != nil {
@@ -284,7 +283,7 @@ func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, 
 	controller.linebotInteractor.Loading(loadingInput)
 
 	txhash, err := controller.blockchainInteractor.CreateNonFungible(userId, contractId, name, meta)
-	fmt.Println(txhash)
+	fmt.Println("txhash: ", txhash)
 	time.Sleep(time.Second * 10) //sleep
 	if err != nil {
 		sessions[key{userId, "state"}] = ""
@@ -292,7 +291,7 @@ func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, 
 		return
 	}
 	tx, err := controller.blockchainInteractor.GetTransaction(txhash.TxHash)
-	fmt.Println(tx)
+	fmt.Println("tx: ", tx)
 	time.Sleep(time.Second * 10) //sleep
 	if err != nil {
 		sessions[key{userId, "state"}] = ""
@@ -302,12 +301,13 @@ func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, 
 	tokenType := *&tx.Logs[0].Events[0].Attributes[1].Value
 
 	// 画像をstorageにアップロードする.tokenTypeをファイル名にする
-	fmt.Println(sessions[key{userId, "image"}])
 	preObjectName := strings.Replace(sessions[key{userId, "image"}], os.Getenv("STORAGE_BASE_URI"), "", -1)
-	fmt.Println(preObjectName)
+	// object名前変更
 	if err = changeObjectName(preObjectName, tokenType); err != nil {
 		logrus.Debug("オブジェクトの名前変更に失敗しました。: ", err)
 	}
+	fmt.Println("Change object name")
+	sessions[key{userId, "image"}] = os.Getenv("STORAGE_BASE_URI") + tokenType
 
 	// ミント
 	mintTx, err := controller.blockchainInteractor.MintNonFungible(userId, contractId, tokenType, name, meta)
@@ -319,6 +319,7 @@ func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, 
 			UserId:    userId,
 			Tx:        txhash.TxHash,
 			Name:      name,
+			Image:     sessions[key{userId, "image"}],
 		}
 		//ミント成功メッセージ送信
 		sessions[key{userId, "state"}] = ""
@@ -331,6 +332,7 @@ func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, 
 		UserId:    userId,
 		Tx:        mintTx.TxHash,
 		Name:      name,
+		Image:     sessions[key{userId, "image"}],
 	}
 	//ミント成功メッセージ送信
 	controller.linebotInteractor.SuccessMint(input)

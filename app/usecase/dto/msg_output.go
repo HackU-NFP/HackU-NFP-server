@@ -10,4 +10,5 @@ type SuccessOutput struct {
 	UserId     string
 	TxUri      string
 	Name       string
+	Image      string
 }

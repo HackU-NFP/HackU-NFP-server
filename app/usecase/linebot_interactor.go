@@ -101,6 +101,7 @@ func (interactor *LineBotInteractor) SuccessMint(in msgdto.SuccessInput) msgdto.
 		TokenType:  in.TokenType,
 		TxUri:      "https://explorer.blockchain.line.me/cashew/transaction/" + in.Tx,
 		Name:       in.Name,
+		Image:      in.Image,
 	}
 	if out.UserId != "" {
 		interactor.linePresenter.SuccessMint(out)

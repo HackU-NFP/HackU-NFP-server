@@ -174,12 +174,13 @@ func (presenter *LinePresenter) SuccessMint(out msgdto.SuccessOutput) {
 	contractId := out.ContractId
 	userId := out.UserId
 	txUri := out.TxUri
+	image := out.Image
 
 	jsonData := []byte(fmt.Sprintf(`{
 		"type": "bubble",
 		"hero": {
 		  "type": "image",
-		  "url": "https://scdn.line-apps.com/n/channel_devcenter/img/fx/01_1_cafe.png",
+		  "url": "%s",
 		  "size": "full",
 		  "aspectRatio": "20:13",
 		  "aspectMode": "cover",
@@ -301,7 +302,7 @@ func (presenter *LinePresenter) SuccessMint(out msgdto.SuccessOutput) {
 			}
 		  ]
 		}
-	  }`, name, tokenType, contractId, userId, txUri))
+	  }`, image, name, tokenType, contractId, userId, txUri))
 
 	container, err := linebot.UnmarshalFlexMessageJSON(jsonData)
 	if err != nil {
