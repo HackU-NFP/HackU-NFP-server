@@ -7,8 +7,10 @@ import (
 	"nfp-server/usecase"
 	msgdto "nfp-server/usecase/dto"
 	"os"
+	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"cloud.google.com/go/storage"
 	"github.com/labstack/echo/v4"
@@ -104,33 +106,53 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 		state := sessions[key{uid, "state"}]
 
 		switch state {
-			case "image":
-				controller.linebotInteractor.GetImage(input)
-			case "title":
-				sessions[key{uid, "title"}] = msg
-				controller.linebotInteractor.GetDetail(input)
-				sessions[key{uid, "state"}] = "detail"
-			case "detail":
-				sessions[key{uid, "meta"}] = msg
-				controller.linebotInteractor.Confirm(input, sessions[key{uid, "image"}], sessions[key{uid, "title"}], sessions[key{uid, "meta"}])
-				sessions[key{uid, "state"}] = "confirm"
-			case "confirm":
-				if msg == "作成する" {
-					userId := e.Source.UserID
-					contractId := os.Getenv("CONTRACT_ID")
-					name := sessions[key{uid, "title"}]
-					meta := sessions[key{uid, "meta"}]
-					// mint
-					controller.mint(e, userId, contractId, name, meta)
-				} else {
-					controller.linebotInteractor.Confirm(input, sessions[key{uid, "image"}], sessions[key{uid, "title"}], sessions[key{uid, "meta"}])
-				}
-			default:
-				// 使い方送信
-				input.Msg = "使い方"
+		case "image":
+			controller.linebotInteractor.GetImage(input)
+		case "title":
+			if !checkTitle(msg) {
+				input.Msg = "タイトルは英数字のみ(スペースなし)で入力してください"
 				controller.linebotInteractor.Send(input)
+				break
+			} else if utf8.RuneCountInString(msg) < 3 || utf8.RuneCountInString(msg) > 20 {
+				input.Msg = "タイトルは3~20文字で入力してください"
+				controller.linebotInteractor.Send(input)
+				break
+			}
+			sessions[key{uid, "title"}] = msg
+			controller.linebotInteractor.GetDetail(input)
+			sessions[key{uid, "state"}] = "detail"
+		case "detail":
+			sessions[key{uid, "meta"}] = msg
+			controller.linebotInteractor.Confirm(input, sessions[key{uid, "image"}], sessions[key{uid, "title"}], sessions[key{uid, "meta"}])
+			sessions[key{uid, "state"}] = "confirm"
+		case "confirm":
+			if msg == "作成する" {
+				userId := e.Source.UserID
+				contractId := os.Getenv("CONTRACT_ID")
+				name := sessions[key{uid, "title"}]
+				meta := sessions[key{uid, "meta"}]
+				// mint
+				controller.mint(e, userId, contractId, name, meta)
+			} else {
+				controller.linebotInteractor.Confirm(input, sessions[key{uid, "image"}], sessions[key{uid, "title"}], sessions[key{uid, "meta"}])
+			}
+		default:
+			// 使い方送信
+			input.Msg = "使い方"
+			controller.linebotInteractor.Send(input)
 		}
 	}
+}
+
+func checkTitle(title string) bool {
+	matched, err := regexp.MatchString("^[0-9a-zA-Z]+$", title)
+	if err != nil {
+		return false
+	}
+	if len(title) == 0 || !matched {
+		return false
+	}
+	return true //true
 }
 
 func (controller *LinebotController) replyToEventTypePostback(e *linebot.Event) {
@@ -175,43 +197,43 @@ func (controller *LinebotController) replyToEventTypePostback(e *linebot.Event) 
 func (controller *LinebotController) replyToImageMessage(e *linebot.Event) {
 	uid := e.Source.UserID
 	msgId := e.Message.(*linebot.ImageMessage).ID
-	state := sessions[key{uid,"state"}]
+	state := sessions[key{uid, "state"}]
 	input := msgdto.MsgInput{
 		ReplyToken: e.ReplyToken,
 		Msg:        "NFT画像",
 	}
 
 	switch state {
-		case "image":
-			// 受け取った画像の処理
-			content, err := controller.bot.GetMessageContent(msgId).Do()
-			if err != nil {
-				// 画像を取得できない場合errが返る
-				logrus.Errorf("ERROR: Image not found", err)
-			}
-			defer content.Content.Close()
+	case "image":
+		// 受け取った画像の処理
+		content, err := controller.bot.GetMessageContent(msgId).Do()
+		if err != nil {
+			// 画像を取得できない場合errが返る
+			logrus.Errorf("ERROR: Image not found", err)
+		}
+		defer content.Content.Close()
 
-			// 画像アップロード
-			err = putGCS(content.Content, msgId)
-			if err != nil {
-				logrus.Errorf("ERROR: putGCS failure", err)
-			}
-			fmt.Println("putGCS")
-			imageUrl := os.Getenv("STORAGE_BASE_URI") + msgId
+		// 画像アップロード
+		err = putGCS(content.Content, msgId)
+		if err != nil {
+			logrus.Errorf("ERROR: putGCS failure", err)
+		}
+		fmt.Println("putGCS")
+		imageUrl := os.Getenv("STORAGE_BASE_URI") + msgId
 
-			sessions[key{uid, "image"}] = imageUrl
+		sessions[key{uid, "image"}] = imageUrl
 
-			controller.linebotInteractor.GetTitle(input)
-			sessions[key{uid, "state"}] = "title"
-		case "":
-			// 使い方送信
-			input.Msg = "使い方"
-			controller.linebotInteractor.Send(input)
-		default:
-			// エラー初期化
-			sessions[key{uid, "state"}] = ""
-			input.Msg = "エラーが発生しました、最初からやり直してください"
-			controller.linebotInteractor.Send(input)
+		controller.linebotInteractor.GetTitle(input)
+		sessions[key{uid, "state"}] = "title"
+	case "":
+		// 使い方送信
+		input.Msg = "使い方"
+		controller.linebotInteractor.Send(input)
+	default:
+		// エラー初期化
+		sessions[key{uid, "state"}] = ""
+		input.Msg = "エラーが発生しました、最初からやり直してください"
+		controller.linebotInteractor.Send(input)
 	}
 }
 
@@ -234,41 +256,41 @@ func createDataMap(q string) map[string]string {
 func putGCS(content io.ReadCloser, object string) error {
 	bucket := os.Getenv("BUCKET")
 	ctx := context.Background()
-  client, err := storage.NewClient(ctx, option.WithCredentialsJSON([]byte(os.Getenv("GCP_CREDENTIALS"))))
-  if err != nil {
-    return fmt.Errorf("storage.NewClient: %v", err)
-  }
-  defer client.Close()
+	client, err := storage.NewClient(ctx, option.WithCredentialsJSON([]byte(os.Getenv("GCP_CREDENTIALS"))))
+	if err != nil {
+		return fmt.Errorf("storage.NewClient: %v", err)
+	}
+	defer client.Close()
 
-  ctx, cancel := context.WithTimeout(ctx, time.Second*50)
-  defer cancel()
+	ctx, cancel := context.WithTimeout(ctx, time.Second*50)
+	defer cancel()
 
-  // Upload an object with storage.Writer.
-  wc := client.Bucket(bucket).Object(object).NewWriter(ctx)
-  wc.ChunkSize = 0 // note retries are not supported for chunk size 0.
+	// Upload an object with storage.Writer.
+	wc := client.Bucket(bucket).Object(object).NewWriter(ctx)
+	wc.ChunkSize = 0 // note retries are not supported for chunk size 0.
 
-  if _, err = io.Copy(wc, content); err != nil {
-    return fmt.Errorf("io.Copy: %v", err)
-  }
-  // Data can continue to be added to the file until the writer is closed.
-  if err := wc.Close(); err != nil {
-    return fmt.Errorf("Writer.Close: %v", err)
-  }
+	if _, err = io.Copy(wc, content); err != nil {
+		return fmt.Errorf("io.Copy: %v", err)
+	}
+	// Data can continue to be added to the file until the writer is closed.
+	if err := wc.Close(); err != nil {
+		return fmt.Errorf("Writer.Close: %v", err)
+	}
 
-  return nil
+	return nil
 }
 
 func changeObjectName(preName string, afterName string) error {
 	bucket := os.Getenv("BUCKET")
 	ctx := context.Background()
-  client, err := storage.NewClient(ctx, option.WithCredentialsJSON([]byte(os.Getenv("GCP_CREDENTIALS"))))
-  if err != nil {
-    return fmt.Errorf("storage.NewClient: %v", err)
-  }
+	client, err := storage.NewClient(ctx, option.WithCredentialsJSON([]byte(os.Getenv("GCP_CREDENTIALS"))))
+	if err != nil {
+		return fmt.Errorf("storage.NewClient: %v", err)
+	}
 	defer client.Close()
 
-  ctx, cancel := context.WithTimeout(ctx, time.Second*50)
-  defer cancel()
+	ctx, cancel := context.WithTimeout(ctx, time.Second*50)
+	defer cancel()
 
 	src := client.Bucket(bucket).Object(preName)
 	dst := client.Bucket(bucket).Object(afterName)

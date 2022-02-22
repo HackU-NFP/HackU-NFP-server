@@ -27,6 +27,7 @@ var superSet = wire.NewSet(
 
 	// Controller
 	controllers.NewLinebotController,
+	controllers.NewApiController,
 
 	// Router
 	infrastructure.NewRouter,

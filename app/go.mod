@@ -49,6 +49,7 @@ require (
 require (
 	github.com/BurntSushi/toml v1.0.0
 	github.com/google/subcommands v1.0.1 // indirect
+	github.com/guregu/null v4.0.0+incompatible
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/tools v0.1.5 // indirect
 )

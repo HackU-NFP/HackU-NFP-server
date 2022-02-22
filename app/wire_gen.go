@@ -24,10 +24,11 @@ func Initialize(e *echo.Echo) *infrastructure.Router {
 	lineBotInteractor := usecase.NewLineBotInteractor(linePresenter)
 	blockchainInteractor := usecase.NewBlockchainInteractor()
 	linebotController := controllers.NewLinebotController(lineBotInteractor, blockchainInteractor)
-	router := infrastructure.NewRouter(e, linebotController)
+	apiController := controllers.NewApiController(blockchainInteractor)
+	router := infrastructure.NewRouter(e, linebotController, apiController)
 	return router
 }
 
 // wire.go:
 
-var superSet = wire.NewSet(presenter.NewLinePresenter, wire.Bind(new(ipresenter.ILinePresenter), new(*presenter.LinePresenter)), usecase.NewBlockchainInteractor, usecase.NewLineBotInteractor, wire.Bind(new(usecase.IBlockchainUseCase), new(*usecase.BlockchainInteractor)), wire.Bind(new(usecase.ILineBotUseCase), new(*usecase.LineBotInteractor)), controllers.NewLinebotController, infrastructure.NewRouter)
+var superSet = wire.NewSet(presenter.NewLinePresenter, wire.Bind(new(ipresenter.ILinePresenter), new(*presenter.LinePresenter)), usecase.NewBlockchainInteractor, usecase.NewLineBotInteractor, wire.Bind(new(usecase.IBlockchainUseCase), new(*usecase.BlockchainInteractor)), wire.Bind(new(usecase.ILineBotUseCase), new(*usecase.LineBotInteractor)), controllers.NewLinebotController, controllers.NewApiController, infrastructure.NewRouter)

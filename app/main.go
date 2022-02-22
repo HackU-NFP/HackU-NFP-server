@@ -25,8 +25,9 @@ func main() {
 
 	// ミドルウェアを設定
 	e.Use(middleware.Logger())
+	e.Use(middleware.CORS())
 	// e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-	// 	AllowOrigins: []string{"https://resto-clip-liff.herokuapp.com"},
+	// 	AllowOrigins: []string{"https://smart-mint.vercel.app", "http://localhost:3000"},
 	// }))
 
 	e.GET("/", func(c echo.Context) error {
