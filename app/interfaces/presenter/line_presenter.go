@@ -12,7 +12,7 @@ import (
 // NFt作成で使用
 const msgFail = "作成に失敗しました。再度はじめからお願いしますm(__)m"
 const msgAskImage = "NFTにしたい画像を送信してください"
-const msgAskTokenTitle = "NFTのタイトルは何にしますか？"
+const msgAskTokenTitle = "NFTのタイトルは何にしますか？\n(英数字のみ)"
 const msgAskTokenMeta = "NFTの詳細な説明を教えてください"
 const msgLoading = "NFTを作成中です..."
 const msgCancel = "キャンセルしました"
@@ -65,7 +65,7 @@ func (presenter *LinePresenter) AskImage(out msgdto.MsgOutput) {
 	cameraQuickReplyButton := linebot.NewQuickReplyButton("", linebot.NewCameraAction("カメラ"))
 	cameraRollQuickReplyButton := &linebot.QuickReplyButton{
 		ImageURL: "",
-		Action: linebot.NewCameraRollAction("カメラロール"),
+		Action:   linebot.NewCameraRollAction("カメラロール"),
 	}
 	cancelQuickReplyButton := linebot.NewQuickReplyButton("", linebot.NewMessageAction("キャンセル", "キャンセル"))
 
