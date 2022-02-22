@@ -98,7 +98,16 @@ func (presenter *LinePresenter) AskTitle(out msgdto.MsgOutput) {
 func (presenter *LinePresenter) AskDetail(out msgdto.MsgOutput) {
 	replyToken := out.ReplyToken
 
-	presenter.replyMessage(msgAskTokenMeta, replyToken)
+	res := linebot.NewTextMessage(msgAskTokenMeta)
+	cancelQuickReplyButton := linebot.NewQuickReplyButton("", linebot.NewMessageAction("キャンセル", "キャンセル"))
+	quickReply := linebot.NewQuickReplyItems(cancelQuickReplyButton)
+	res.WithQuickReplies(quickReply)
+	logrus.Debug("replying message: %v", res)
+
+	if _, err := presenter.bot.ReplyMessage(replyToken, res).Do(); err != nil {
+		println(err)
+		logrus.Errorf("Error LINEBOT replying message: %v", err)
+	}
 }
 
 // Confirm NF作成の確認メッセージ
