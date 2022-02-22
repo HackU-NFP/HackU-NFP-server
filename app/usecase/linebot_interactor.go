@@ -40,7 +40,7 @@ func (interactor *LineBotInteractor) GetImage(in msgdto.MsgInput) msgdto.MsgOutp
 		ReplyToken: in.ReplyToken,
 	}
 	if out.ReplyToken != "" {
-		interactor.linePresenter.AskIamge(out)
+		interactor.linePresenter.AskImage(out)
 	}
 
 	return out
