@@ -127,3 +127,51 @@ func (interactor *BlockchainInteractor) MintNonFungible(userID, contractID, toke
 
 	return txAccepted, nil
 }
+
+func (interactor *BlockchainInteractor) GetNonFungibles(contractID, orderBy, limit, page string) ([]*NonFungible, error) {
+	// if checkUrlParam(contractID) {
+	// 	return nil, errInvalidParam
+	// }
+	query := map[string]string{
+		"orderBy": orderBy,
+		"limit":   limit,
+		"page":    page,
+	}
+
+	path := fmt.Sprintf("/v1/item-tokens/%s/non-fungibles", contractID)
+
+	apiResult, err := api.CallAPI(path, "GET", query, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	nonFungible := make([]*NonFungible, 0)
+
+	if err := json.Unmarshal(apiResult, &nonFungible); err != nil {
+		return nil, err
+	}
+
+	return nonFungible, nil
+}
+
+func (interactor *BlockchainInteractor) GetNonFungibleInfo(contractID, tokenType string) (*NonFungibleInfo, error) {
+	if checkUrlParam(contractID, tokenType) {
+		return nil, errInvalidParam
+	}
+	path := fmt.Sprintf("/v1/item-tokens/%s/non-fungibles/%s", contractID, tokenType)
+
+	apiResult, err := api.CallAPI(path, "GET", nil, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	nonFungibleInfo := &NonFungibleInfo{}
+
+	if err := json.Unmarshal(apiResult, nonFungibleInfo); err != nil {
+		return nil, err
+	}
+
+	return nonFungibleInfo, nil
+}
