@@ -56,11 +56,26 @@ func (presenter *LinePresenter) Loading(out msgdto.MsgOutput) {
 	presenter.replyMessage(msgLoading, replyToken)
 }
 
-// AskIamge NFTにする画像たずねる
-func (presenter *LinePresenter) AskIamge(out msgdto.MsgOutput) {
+// AskImage NFTにする画像たずねる
+func (presenter *LinePresenter) AskImage(out msgdto.MsgOutput) {
 	replyToken := out.ReplyToken
 
-	presenter.replyMessage(msgAskImage, replyToken)
+	res := linebot.NewTextMessage(msgAskImage)
+
+	cameraQuickReplyButton := linebot.NewQuickReplyButton("", linebot.NewCameraAction("カメラ"))
+	cameraRollQuickReplyButton := &linebot.QuickReplyButton{
+		ImageURL: "",
+		Action: linebot.NewCameraRollAction("カメラロール"),
+	}
+	cancelQuickReplyButton := linebot.NewQuickReplyButton("", linebot.NewMessageAction("キャンセル", "キャンセル"))
+
+	quickReply := linebot.NewQuickReplyItems(cameraQuickReplyButton, cameraRollQuickReplyButton, cancelQuickReplyButton)
+	res.WithQuickReplies(quickReply)
+	logrus.Debug("replying message: %v", res)
+	if _, err := presenter.bot.ReplyMessage(replyToken, res).Do(); err != nil {
+		println(err)
+		logrus.Errorf("Error LINEBOT replying message: %v", err)
+	}
 }
 
 // AskTitle NFTのタイトルたずねる
