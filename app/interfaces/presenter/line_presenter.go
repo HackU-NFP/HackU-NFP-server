@@ -82,79 +82,71 @@ func (presenter *LinePresenter) Confirm(out msgdto.MsgOutput, image string, titl
 	replyToken := out.ReplyToken
 
 	jsonData := []byte(fmt.Sprintf(`{
-		"type": "bubble",
-		"direction": "ltr",
-		"body": {
-		  "type": "box",
-		  "layout": "vertical",
-		  "contents": [
-			{
-			  "type": "box",
-			  "layout": "vertical",
-			  "contents": [
-				{
-				  "type": "text",
-				  "text": "このNFTを作成してよろしいですか？",
-				  "weight": "bold",
-				  "size": "md",
-				  "align": "start",
-				  "margin": "sm",
-				  "wrap": true,
-				  "contents": []
-				},
-				{
-				  "type": "spacer"
-				}
-			  ]
-			},
-			{
-    		"type": "image",
-    		"url": "%s",
-    		"size": "full",
-    		"aspectRatio": "3:1"
-  		},
-			{
-			  "type": "text",
-			  "text": "name: %s",
-			  "size": "sm",
-			  "contents": []
-			},
-			{
-			  "type": "text",
-			  "text": "meta: %s",
-			  "size": "sm",
-			  "wrap": true,
-			  "contents": []
-			}
-		  ]
-		},
-		"footer": {
-		  "type": "box",
-		  "layout": "horizontal",
-		  "contents": [
-			{
-			  "type": "button",
-			  "action": {
-				"type": "postback",
-				"label": "作成する",
-				"text": "作成する",
-				"data": "create"
-			  },
-			  "style": "primary"
-			},
-			{
-			  "type": "button",
-			  "action": {
-				"type": "postback",
-				"label": "キャンセル",
-				"text": "キャンセル",
-				"data": "cancel_create"
-			  },
-			  "style": "secondary"
-			}
-		  ]
-		}
-	  }`, image, title, meta))
+  "type": "bubble",
+  "direction": "ltr",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "text": "このNFTを作成しますか？",
+        "weight": "bold",
+        "size": "md",
+        "align": "start"
+      },
+      {
+        "type": "image",
+        "url": "%s",
+        "size": "full",
+        "aspectRatio": "5:4",
+        "aspectMode": "cover",
+        "margin": "md"
+      },
+      {
+        "type": "text",
+        "text": "name: %s",
+        "size": "md",
+        "contents": [],
+        "margin": "md"
+      },
+      {
+        "type": "text",
+        "text": "meta: %s",
+        "size": "md",
+        "wrap": true,
+        "contents": []
+      }
+    ]
+  },
+  "footer": {
+    "type": "box",
+    "layout": "horizontal",
+    "contents": [
+      {
+        "type": "button",
+        "action": {
+          "type": "postback",
+          "label": "作成する",
+          "text": "作成する",
+          "data": "create"
+        },
+        "style": "primary"
+      },
+      {
+        "type": "button",
+        "action": {
+          "type": "postback",
+          "label": "キャンセル",
+          "text": "キャンセル",
+          "data": "cancel_create"
+        },
+        "style": "secondary",
+        "margin": "md"
+      }
+    ]
+  }
+}`, image, title, meta))
 
 	container, err := linebot.UnmarshalFlexMessageJSON(jsonData)
 	if err != nil {
