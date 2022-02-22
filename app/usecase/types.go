@@ -5,10 +5,32 @@ type UserInfo struct {
 	WalletAddress string `json:"walletAddress"`
 }
 
+type NonFungible struct {
+	TokenType   string `json:"tokenType"`
+	Name        string `json:"name"`
+	Meta        string `json:"meta"`
+	CreatedAt   int    `json:"createdAt"`
+	TotalSupply string `json:"totalSupply"`
+	TotalMint   string `json:"totalMint"`
+	TotalBurn   string `json:"totalBurn"`
+}
+
 type NonFungibleInfo struct {
-	Name       string `json:"name"`
+	TokenType   string `json:"tokenType"`
+	Name        string `json:"name"`
+	Meta        string `json:"meta"`
+	CreatedAt   int    `json:"createdAt"`
+	TotalSupply string `json:"totalSupply"`
+	TotalMint   string `json:"totalMint"`
+	TotalBurn   string `json:"totalBurn"`
+	Token       []Token
+}
+type Token struct {
 	TokenIndex string `json:"tokenIndex"`
+	Name       string `json:"name"`
 	Meta       string `json:"meta"`
+	CreatedAt  int    `json:"createdAt"`
+	BurnedAt   *int   `json:"burnedAt"`
 }
 
 type Transaction struct {
