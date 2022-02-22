@@ -56,25 +56,58 @@ func (presenter *LinePresenter) Loading(out msgdto.MsgOutput) {
 	presenter.replyMessage(msgLoading, replyToken)
 }
 
-// AskIamge NFTにする画像たずねる
-func (presenter *LinePresenter) AskIamge(out msgdto.MsgOutput) {
+// AskImage NFTにする画像たずねる
+func (presenter *LinePresenter) AskImage(out msgdto.MsgOutput) {
 	replyToken := out.ReplyToken
 
-	presenter.replyMessage(msgAskImage, replyToken)
+	res := linebot.NewTextMessage(msgAskImage)
+
+	cameraQuickReplyButton := linebot.NewQuickReplyButton("", linebot.NewCameraAction("カメラ"))
+	cameraRollQuickReplyButton := &linebot.QuickReplyButton{
+		ImageURL: "",
+		Action: linebot.NewCameraRollAction("カメラロール"),
+	}
+	cancelQuickReplyButton := linebot.NewQuickReplyButton("", linebot.NewMessageAction("キャンセル", "キャンセル"))
+
+	quickReply := linebot.NewQuickReplyItems(cameraQuickReplyButton, cameraRollQuickReplyButton, cancelQuickReplyButton)
+	res.WithQuickReplies(quickReply)
+	logrus.Debug("replying message: %v", res)
+	if _, err := presenter.bot.ReplyMessage(replyToken, res).Do(); err != nil {
+		println(err)
+		logrus.Errorf("Error LINEBOT replying message: %v", err)
+	}
 }
 
 // AskTitle NFTのタイトルたずねる
 func (presenter *LinePresenter) AskTitle(out msgdto.MsgOutput) {
 	replyToken := out.ReplyToken
 
-	presenter.replyMessage(msgAskTokenTitle, replyToken)
+	res := linebot.NewTextMessage(msgAskTokenTitle)
+	cancelQuickReplyButton := linebot.NewQuickReplyButton("", linebot.NewMessageAction("キャンセル", "キャンセル"))
+	quickReply := linebot.NewQuickReplyItems(cancelQuickReplyButton)
+	res.WithQuickReplies(quickReply)
+	logrus.Debug("replying message: %v", res)
+
+	if _, err := presenter.bot.ReplyMessage(replyToken, res).Do(); err != nil {
+		println(err)
+		logrus.Errorf("Error LINEBOT replying message: %v", err)
+	}
 }
 
 // AskDetail NFTの説明たずねる
 func (presenter *LinePresenter) AskDetail(out msgdto.MsgOutput) {
 	replyToken := out.ReplyToken
 
-	presenter.replyMessage(msgAskTokenMeta, replyToken)
+	res := linebot.NewTextMessage(msgAskTokenMeta)
+	cancelQuickReplyButton := linebot.NewQuickReplyButton("", linebot.NewMessageAction("キャンセル", "キャンセル"))
+	quickReply := linebot.NewQuickReplyItems(cancelQuickReplyButton)
+	res.WithQuickReplies(quickReply)
+	logrus.Debug("replying message: %v", res)
+
+	if _, err := presenter.bot.ReplyMessage(replyToken, res).Do(); err != nil {
+		println(err)
+		logrus.Errorf("Error LINEBOT replying message: %v", err)
+	}
 }
 
 // Confirm NF作成の確認メッセージ
@@ -82,79 +115,71 @@ func (presenter *LinePresenter) Confirm(out msgdto.MsgOutput, image string, titl
 	replyToken := out.ReplyToken
 
 	jsonData := []byte(fmt.Sprintf(`{
-		"type": "bubble",
-		"direction": "ltr",
-		"body": {
-		  "type": "box",
-		  "layout": "vertical",
-		  "contents": [
-			{
-			  "type": "box",
-			  "layout": "vertical",
-			  "contents": [
-				{
-				  "type": "text",
-				  "text": "このNFTを作成してよろしいですか？",
-				  "weight": "bold",
-				  "size": "md",
-				  "align": "start",
-				  "margin": "sm",
-				  "wrap": true,
-				  "contents": []
-				},
-				{
-				  "type": "spacer"
-				}
-			  ]
-			},
-			{
-    		"type": "image",
-    		"url": "%s",
-    		"size": "full",
-    		"aspectRatio": "3:1"
-  		},
-			{
-			  "type": "text",
-			  "text": "name: %s",
-			  "size": "sm",
-			  "contents": []
-			},
-			{
-			  "type": "text",
-			  "text": "meta: %s",
-			  "size": "sm",
-			  "wrap": true,
-			  "contents": []
-			}
-		  ]
-		},
-		"footer": {
-		  "type": "box",
-		  "layout": "horizontal",
-		  "contents": [
-			{
-			  "type": "button",
-			  "action": {
-				"type": "postback",
-				"label": "作成する",
-				"text": "作成する",
-				"data": "create"
-			  },
-			  "style": "primary"
-			},
-			{
-			  "type": "button",
-			  "action": {
-				"type": "postback",
-				"label": "キャンセル",
-				"text": "キャンセル",
-				"data": "cancel_create"
-			  },
-			  "style": "secondary"
-			}
-		  ]
-		}
-	  }`, image, title, meta))
+  "type": "bubble",
+  "direction": "ltr",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "text": "このNFTを作成しますか？",
+        "weight": "bold",
+        "size": "md",
+        "align": "start"
+      },
+      {
+        "type": "image",
+        "url": "%s",
+        "size": "full",
+        "aspectRatio": "5:4",
+        "aspectMode": "cover",
+        "margin": "md"
+      },
+      {
+        "type": "text",
+        "text": "name: %s",
+        "size": "md",
+        "contents": [],
+        "margin": "md"
+      },
+      {
+        "type": "text",
+        "text": "meta: %s",
+        "size": "md",
+        "wrap": true,
+        "contents": []
+      }
+    ]
+  },
+  "footer": {
+    "type": "box",
+    "layout": "horizontal",
+    "contents": [
+      {
+        "type": "button",
+        "action": {
+          "type": "postback",
+          "label": "作成する",
+          "text": "作成する",
+          "data": "create"
+        },
+        "style": "primary"
+      },
+      {
+        "type": "button",
+        "action": {
+          "type": "postback",
+          "label": "キャンセル",
+          "text": "キャンセル",
+          "data": "cancel_create"
+        },
+        "style": "secondary",
+        "margin": "md"
+      }
+    ]
+  }
+}`, image, title, meta))
 
 	container, err := linebot.UnmarshalFlexMessageJSON(jsonData)
 	if err != nil {

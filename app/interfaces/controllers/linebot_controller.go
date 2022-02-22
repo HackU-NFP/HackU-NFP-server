@@ -92,7 +92,7 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 		controller.linebotInteractor.Send(input)
 	} else if msg == "NFTを作る" {
 		controller.linebotInteractor.GetImage(input)
-		sessions[key{uid, "state"}] = "title"
+		sessions[key{uid, "state"}] = "image"
 	} else if msg == "NFTテスト" {
 		logrus.Debug("NFTテスト")
 		userId := e.Source.UserID
@@ -101,32 +101,34 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 		meta := "HelloWorld" //TODO:stateの値にする
 		controller.mint(e, userId, contractId, name, meta)
 	} else {
-		state := sessions[key{uid, "state"}] //TODO: state管理
+		state := sessions[key{uid, "state"}]
 
 		switch state {
-		case "title":
-			sessions[key{uid, "title"}] = msg
-			controller.linebotInteractor.GetDetail(input)
-			sessions[key{uid, "state"}] = "detail"
-		case "detail":
-			sessions[key{uid, "meta"}] = msg
-			controller.linebotInteractor.Confirm(input, sessions[key{uid, "image"}], sessions[key{uid, "title"}], sessions[key{uid, "meta"}])
-			sessions[key{uid, "state"}] = "confirm"
-		case "confirm":
-			if msg == "作成する" {
-				userId := e.Source.UserID
-				contractId := os.Getenv("CONTRACT_ID")
-				name := sessions[key{uid, "title"}]
-				meta := sessions[key{uid, "meta"}]
-				// mint
-				controller.mint(e, userId, contractId, name, meta)
-			} else {
+			case "image":
+				controller.linebotInteractor.GetImage(input)
+			case "title":
+				sessions[key{uid, "title"}] = msg
+				controller.linebotInteractor.GetDetail(input)
+				sessions[key{uid, "state"}] = "detail"
+			case "detail":
+				sessions[key{uid, "meta"}] = msg
 				controller.linebotInteractor.Confirm(input, sessions[key{uid, "image"}], sessions[key{uid, "title"}], sessions[key{uid, "meta"}])
-			}
-		default:
-			// 使い方送信
-			input.Msg = "使い方"
-			controller.linebotInteractor.Send(input)
+				sessions[key{uid, "state"}] = "confirm"
+			case "confirm":
+				if msg == "作成する" {
+					userId := e.Source.UserID
+					contractId := os.Getenv("CONTRACT_ID")
+					name := sessions[key{uid, "title"}]
+					meta := sessions[key{uid, "meta"}]
+					// mint
+					controller.mint(e, userId, contractId, name, meta)
+				} else {
+					controller.linebotInteractor.Confirm(input, sessions[key{uid, "image"}], sessions[key{uid, "title"}], sessions[key{uid, "meta"}])
+				}
+			default:
+				// 使い方送信
+				input.Msg = "使い方"
+				controller.linebotInteractor.Send(input)
 		}
 	}
 }
@@ -173,33 +175,44 @@ func (controller *LinebotController) replyToEventTypePostback(e *linebot.Event) 
 func (controller *LinebotController) replyToImageMessage(e *linebot.Event) {
 	uid := e.Source.UserID
 	msgId := e.Message.(*linebot.ImageMessage).ID
-	fmt.Println((msgId))
-
+	state := sessions[key{uid,"state"}]
 	input := msgdto.MsgInput{
 		ReplyToken: e.ReplyToken,
 		Msg:        "NFT画像",
 	}
 
-	// 受け取った画像の処理
-	content, err := controller.bot.GetMessageContent(msgId).Do()
-	if err != nil {
-		// 画像を取得できない場合errが返る
-		logrus.Errorf("ERROR: Image not found", err)
+	switch state {
+		case "image":
+			// 受け取った画像の処理
+			content, err := controller.bot.GetMessageContent(msgId).Do()
+			if err != nil {
+				// 画像を取得できない場合errが返る
+				logrus.Errorf("ERROR: Image not found", err)
+			}
+			defer content.Content.Close()
+
+			// 画像アップロード
+			err = putGCS(content.Content, msgId)
+			if err != nil {
+				logrus.Errorf("ERROR: putGCS failure", err)
+			}
+			fmt.Println("putGCS")
+			imageUrl := os.Getenv("STORAGE_BASE_URI") + msgId
+
+			sessions[key{uid, "image"}] = imageUrl
+
+			controller.linebotInteractor.GetTitle(input)
+			sessions[key{uid, "state"}] = "title"
+		case "":
+			// 使い方送信
+			input.Msg = "使い方"
+			controller.linebotInteractor.Send(input)
+		default:
+			// エラー初期化
+			sessions[key{uid, "state"}] = ""
+			input.Msg = "エラーが発生しました、最初からやり直してください"
+			controller.linebotInteractor.Send(input)
 	}
-	defer content.Content.Close()
-
-	// 画像アップロード
-	err = putGCS(content.Content, msgId)
-	if err != nil {
-		logrus.Errorf("ERROR: putGCS failure", err)
-	}
-	fmt.Println("putGCS")
-	imageUrl := os.Getenv("STORAGE_BASE_URI") + msgId
-
-	sessions[key{uid, "image"}] = imageUrl
-
-	controller.linebotInteractor.GetTitle(input)
-	sessions[key{uid, "state"}] = "title"
 }
 
 // createDataMap Postbackで受け取ったデータをパースしてマップ形式で保存する
