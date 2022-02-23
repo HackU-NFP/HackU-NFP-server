@@ -88,7 +88,10 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 		Msg:        msg,
 	}
 
-	if msg == "キャンセル" {
+	if msg == "使い方" {
+		input.Msg = "すまーとみんとは,画像を簡単にNFTにすることのできるサービスです。NFTはLINEで簡単に友達に送ることもできます。\nお気に入りの画像をNFTにしてみましょう！"
+		controller.linebotInteractor.Send(input)
+	} else if msg == "キャンセル" {
 		sessions[key{uid, "state"}] = ""
 		input.Msg = "キャンセルしました"
 		controller.linebotInteractor.Send(input)
@@ -137,8 +140,6 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 				controller.linebotInteractor.Confirm(input, sessions[key{uid, "image"}], sessions[key{uid, "title"}], sessions[key{uid, "meta"}])
 			}
 		default:
-			// 使い方送信
-			input.Msg = "使い方"
 			controller.linebotInteractor.Send(input)
 		}
 	}
