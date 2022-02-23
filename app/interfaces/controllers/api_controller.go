@@ -51,3 +51,22 @@ func (controller *ApiController) GetNft() echo.HandlerFunc {
 		return c.JSON(200, response)
 	}
 }
+
+// ユーザーのNFT一覧取得
+func (controller *ApiController) GetUserNfts() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		userId := c.Param("userId")
+		contractId := c.QueryParam("contractId")
+		orderBy := c.QueryParam("orderBy")
+		limit := c.QueryParam("limit")
+		page := c.QueryParam("page")
+
+		response, err := controller.blockchainInteractor.GetUserNonFungibles(contractId, userId, orderBy, limit, page)
+		if err != nil {
+			logrus.Fatalf("Error LINEBOT parsing request: %v", err)
+			return c.JSON(500, NewError(err))
+		}
+
+		return c.JSON(200, response)
+	}
+}
