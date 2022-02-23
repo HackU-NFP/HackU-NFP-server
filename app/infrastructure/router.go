@@ -22,4 +22,5 @@ func (r *Router) Init() {
 	r.e.POST("/linebot/callback", r.lc.CatchEvents())
 	r.e.GET("/api/nfts", r.ac.GetNfts())
 	r.e.GET("/api/nft", r.ac.GetNft())
+	r.e.GET("/api/users/:userId/nfts", r.ac.GetUserNfts())
 }

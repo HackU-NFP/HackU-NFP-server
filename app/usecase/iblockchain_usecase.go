@@ -7,4 +7,5 @@ type IBlockchainUseCase interface {
 	GetTransaction(txHash string) (*Transaction, error)
 	GetNonFungibles(contractID, orderBy, limit, page string) ([]*NonFungible, error)
 	GetNonFungibleInfo(contractID, tokenType string) (*NonFungibleInfo, error)
+	GetUserNonFungibles(contractID, userId, orderBy, limit, page string) ([]*NonFungible, error)
 }
