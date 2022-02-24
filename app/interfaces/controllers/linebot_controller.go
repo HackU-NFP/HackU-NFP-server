@@ -89,7 +89,7 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 	}
 
 	if msg == "使い方" {
-		input.Msg = "すまーとみんとは,画像を簡単にNFTにすることのできるサービスです。NFTはLINEで簡単に友達に送ることもできます。\nお気に入りの画像をNFTにしてみましょう！"
+		input.Msg = "すまーとみんとは、画像を簡単にNFTにすることのできるサービスです。\nNFTを作るには「NFTを作る」を送信してね。\n作成したNFTを見るには、https://liff.line.me/1656883670-KLvmmMEm にアクセスしてね。"
 		controller.linebotInteractor.Send(input)
 	} else if msg == "キャンセル" {
 		sessions[key{uid, "state"}] = ""
