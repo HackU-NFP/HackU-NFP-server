@@ -134,6 +134,7 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 				contractId := os.Getenv("CONTRACT_ID")
 				name := sessions[key{uid, "title"}]
 				meta := sessions[key{uid, "meta"}]
+				sessions[key{userId, "state"}] = ""
 				// mint
 				controller.mint(e, userId, contractId, name, meta)
 			} else {
