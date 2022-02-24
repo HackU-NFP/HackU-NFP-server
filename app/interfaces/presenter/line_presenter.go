@@ -16,6 +16,7 @@ const msgAskTokenTitle = "NFTのタイトルは何にしますか？\n(英数字
 const msgAskTokenMeta = "NFTの詳細な説明を教えてください"
 const msgLoading = "NFTを作成中です..."
 const msgCancel = "キャンセルしました"
+const msgHowToUse = "すまーとみんとは、画像を簡単にNFTにすることのできるサービスです。\nNFTを作るには「NFTを作る」を送信してね。\n作成したNFTを見るには、https://liff.line.me/1656883670-KLvmmMEm にアクセスしてね。"
 
 const maxTextWC = 60
 
@@ -54,6 +55,12 @@ func (presenter *LinePresenter) Parrot(token, msg string) {
 func (presenter *LinePresenter) Loading(out msgdto.MsgOutput) {
 	replyToken := out.ReplyToken
 	presenter.replyMessage(msgLoading, replyToken)
+}
+
+// 使い方送信
+func (presenter *LinePresenter) HowToUse(out msgdto.MsgOutput) {
+	replyToken := out.ReplyToken
+	presenter.replyMessage(msgHowToUse, replyToken)
 }
 
 // AskImage NFTにする画像たずねる

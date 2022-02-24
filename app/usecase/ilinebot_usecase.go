@@ -11,5 +11,6 @@ type ILineBotUseCase interface {
 	GetDetail(msgdto.MsgInput) msgdto.MsgOutput
 	SuccessMint(msgdto.SuccessInput) msgdto.SuccessOutput
 	Confirm(msgdto.MsgInput, string, string, string) msgdto.MsgOutput
+	HowToUse(msgdto.MsgInput) msgdto.MsgOutput
 	StoreImage()
 }
