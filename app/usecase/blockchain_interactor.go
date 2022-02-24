@@ -175,3 +175,30 @@ func (interactor *BlockchainInteractor) GetNonFungibleInfo(contractID, tokenType
 
 	return nonFungibleInfo, nil
 }
+
+func (interactor *BlockchainInteractor) GetUserNonFungibles(contractID, userId, orderBy, limit, page string) ([]*NonFungible, error) {
+	// if checkUrlParam(contractID) {
+	// 	return nil, errInvalidParam
+	// }
+	query := map[string]string{
+		"orderBy": orderBy,
+		"limit":   limit,
+		"page":    page,
+	}
+
+	path := fmt.Sprintf("/v1/users/%s/item-tokens/%s/non-fungibles", userId, contractID)
+
+	apiResult, err := api.CallAPI(path, "GET", query, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	nonFungible := make([]*NonFungible, 0)
+
+	if err := json.Unmarshal(apiResult, &nonFungible); err != nil {
+		return nil, err
+	}
+
+	return nonFungible, nil
+}

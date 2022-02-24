@@ -164,7 +164,8 @@ func (presenter *LinePresenter) Confirm(out msgdto.MsgOutput, image string, titl
           "text": "作成する",
           "data": "create"
         },
-        "style": "primary"
+        "style": "primary",
+		"color": "#00bfe6"
       },
       {
         "type": "button",
