@@ -121,3 +121,15 @@ func (interactor *LineBotInteractor) Loading(in msgdto.MsgInput) msgdto.MsgOutpu
 
 	return out
 }
+
+// 使い方
+func (interactor *LineBotInteractor) HowToUse(in msgdto.MsgInput) msgdto.MsgOutput {
+	out := msgdto.MsgOutput{
+		ReplyToken: in.ReplyToken,
+	}
+	if out.ReplyToken != "" {
+		interactor.linePresenter.HowToUse(out)
+	}
+
+	return out
+}
