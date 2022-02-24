@@ -11,4 +11,5 @@ type ILinePresenter interface {
 	AskDetail(out msgdto.MsgOutput)
 	SuccessMint(out msgdto.SuccessOutput)
 	Confirm(out msgdto.MsgOutput, image string, title string, meta string)
+	HowToUse(out msgdto.MsgOutput)
 }
