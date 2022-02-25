@@ -85,15 +85,14 @@ func (controller *LinebotController) replyToTextMessage(e *linebot.Event) {
 
 	input := msgdto.MsgInput{
 		ReplyToken: e.ReplyToken,
+		LineUserID: uid,
 		Msg:        msg,
 	}
 
 	if msg == "使い方" {
 		controller.linebotInteractor.HowToUse(input)
 	} else if msg == "キャンセル" {
-		sessions[key{uid, "state"}] = ""
-		input.Msg = "キャンセルしました"
-		controller.linebotInteractor.Send(input)
+		controller.cancel(input)
 	} else if msg == "NFTを作る" {
 		controller.linebotInteractor.GetImage(input)
 		sessions[key{uid, "state"}] = "image"
@@ -184,9 +183,7 @@ func (controller *LinebotController) replyToEventTypePostback(e *linebot.Event) 
 			// controller.mint(e, userId, contractId, name, meta)
 		} else if e.Postback.Data == "cancel_create" {
 			//キャンセルボタン押された時
-			sessions[key{uid, "state"}] = ""
-			input.Msg = "キャンセルしました"
-			controller.linebotInteractor.Send(input)
+			controller.cancel(input)
 		}
 	} else {
 		// エラー初期化
@@ -202,6 +199,7 @@ func (controller *LinebotController) replyToImageMessage(e *linebot.Event) {
 	state := sessions[key{uid, "state"}]
 	input := msgdto.MsgInput{
 		ReplyToken: e.ReplyToken,
+		LineUserID: uid,
 		Msg:        "NFT画像",
 	}
 
@@ -220,7 +218,6 @@ func (controller *LinebotController) replyToImageMessage(e *linebot.Event) {
 		if err != nil {
 			logrus.Errorf("ERROR: putGCS failure", err)
 		}
-		fmt.Println("putGCS")
 		imageUrl := os.Getenv("STORAGE_BASE_URI") + msgId
 
 		sessions[key{uid, "image"}] = imageUrl
@@ -232,9 +229,7 @@ func (controller *LinebotController) replyToImageMessage(e *linebot.Event) {
 		controller.linebotInteractor.HowToUse(input)
 	default:
 		// エラー初期化
-		sessions[key{uid, "state"}] = ""
-		input.Msg = "エラーが発生しました、最初からやり直してください"
-		controller.linebotInteractor.Send(input)
+		controller.error(input)
 	}
 }
 
@@ -277,6 +272,7 @@ func putGCS(content io.ReadCloser, object string) error {
 	if err := wc.Close(); err != nil {
 		return fmt.Errorf("Writer.Close: %v", err)
 	}
+	fmt.Println("putGCS")
 
 	return nil
 }
@@ -306,8 +302,54 @@ func changeObjectName(preName string, afterName string) error {
 	if err = src.Delete(ctx); err != nil {
 		return fmt.Errorf("Delete src: %v", err)
 	}
+	fmt.Println("changeObjectName")
 
 	return nil
+}
+
+func deleteGCS(object string) error {
+	bucket := os.Getenv("BUCKET")
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx, option.WithCredentialsJSON([]byte(os.Getenv("GCP_CREDENTIALS"))))
+	if err != nil {
+		return fmt.Errorf("storage.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*50)
+	defer cancel()
+
+	// Delete object
+	if err = client.Bucket(bucket).Object(object).Delete(ctx); err != nil {
+		return fmt.Errorf("Delete object: %v", err)
+	}
+	fmt.Println("deleteGCS")
+
+	return nil
+}
+
+func (controller *LinebotController) cancel(input msgdto.MsgInput) {
+	uid := input.LineUserID
+	sessions[key{uid, "state"}] = ""
+	input.Msg = "キャンセルしました"
+	controller.linebotInteractor.Send(input)
+	if sessions[key{uid, "image"}] != "" {
+		object := strings.Replace(sessions[key{uid, "image"}], os.Getenv("STORAGE_BASE_URI"), "", -1)
+		deleteGCS(object)
+	}
+	fmt.Println("cancel")
+}
+
+func (controller *LinebotController) error(input msgdto.MsgInput) {
+	uid := input.LineUserID
+	sessions[key{uid, "state"}] = ""
+	input.Msg = "エラーが発生しました、お手数ですが最初からやり直してください"
+	controller.linebotInteractor.Send(input)
+	if sessions[key{uid, "image"}] != "" {
+		object := strings.Replace(sessions[key{uid, "image"}], os.Getenv("STORAGE_BASE_URI"), "", -1)
+		deleteGCS(object)
+	}
+	fmt.Println("error")
 }
 
 func (controller *LinebotController) mint(e *linebot.Event, userId, contractId, name, meta string) {
