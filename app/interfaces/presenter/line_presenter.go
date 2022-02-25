@@ -220,7 +220,7 @@ func (presenter *LinePresenter) SuccessMint(out msgdto.SuccessOutput) {
 		  "action": {
 			"type": "uri",
 			"label": "Line",
-			"uri": "https://linecorp.com/"
+			"uri": "https://liff.line.me/1656883670-KLvmmMEm/%s"
 		  }
 		},
 		"body": {
@@ -335,7 +335,7 @@ func (presenter *LinePresenter) SuccessMint(out msgdto.SuccessOutput) {
 			}
 		  ]
 		}
-	  }`, image, name, tokenType, contractId, userId, txUri))
+	  }`, image, tokenType, name, tokenType, contractId, userId, txUri))
 
 	container, err := linebot.UnmarshalFlexMessageJSON(jsonData)
 	if err != nil {
